@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>PC Configurator jQuery Plugin</title>
+        <link rel="stylesheet" href="css/style.css" type="text/css">
+        <script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+        <script type="text/javascript" src="js/jquery.objectmaker.js"></script>
+    </head>
+    <body id="index" class="main">
+        <header>
+            <h1>Pc Configurator</h1>
+        </header>
+        <aside>
+        </aside>
+        <section id="configurator">
+        </section>
+        <footer>
+        </footer>
+        <script type="text/javascript">
+            var om = $("#configurator").objectMaker({
+                source: function(selection_array) {
+                    var initial = {
+                        selection : selection_array,
+                        item_ids : ["P16", "P32", "P64", "P128", "P256"],
+                        items : {
+                            "P16" : {
+                              type: "Case",
+                              img: "http://www.placehold.it/60x60",
+                              val: 100,
+                              title: "Small Case type 1"
+                            },
+                            "P32" : {
+                              type: "Case",
+                              img: "http://www.placehold.it/60x60",
+                              val: 100,
+                              title: "Larger Case"
+                            },
+                            "P64" : {
+                              type: "Video Card",
+                              img: "http://www.placehold.it/60x60",
+                              val: 64,
+                              title: "Monster Graphics 3D"
+                            },
+                            "P128" : {
+                              type: "Video Card",
+                              img: "http://www.placehold.it/60x60",
+                              val: 38,
+                              title: "Old Style 3dfx"
+                            },
+                            "P256" : {
+                              type: "Sound Card",
+                              img: "http://www.placehold.it/60x60",
+                              val: 18,
+                              title: "SoundBlaster"
+                            },
+                        }
+                    };
+                    if ("P32" in selection_array) {
+                        delete(initial.items["P128"]);
+                    }
+                    return initial;
+                },
+            });
+        </script>
+    </body>
+</html>
