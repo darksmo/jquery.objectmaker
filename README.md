@@ -33,6 +33,7 @@ Quick Start:
         </head>
   
   2. create a <section> containing your configurator
+  
         ...
         <body>
           <section id="configurator"></section>
@@ -41,25 +42,25 @@ Quick Start:
   
   3. initialize objectmaker on #configurator
   
-     <script type="text/javascript">
-              var config = $("#configurator").objectMaker({
-                  source: {
-                      // define mutually exclusive products.
-                      // the line below means: item "P128" is not compatible with items "P16" and "P256".
-                      "mutexes" : {
-                          "P128" : ["P16", "P256"],
-                          // ... more mutexes
-                      },
-                      "items" : {
-                          "P16" : {
-                            type: "Case",
-                            img: "http://www.placehold.it/120x120",
-                            val: 100,
-                            symbol: "&euro;",
-                            title: "Small Case type 1 (Incompatible with 3DFX)"
+        <script type="text/javascript">
+                  var config = $("#configurator").objectMaker({
+                      source: {
+                          // define mutually exclusive products.
+                          // the line below means: item "P128" is not compatible with items "P16" and "P256".
+                          "mutexes" : {
+                              "P128" : ["P16", "P256"],
+                              // ... more mutexes
                           },
-                          // ... more items
+                          "items" : {
+                              "P16" : {
+                                type: "Case",
+                                img: "http://www.placehold.it/120x120",
+                                val: 100,
+                                symbol: "&euro;",
+                                title: "Small Case type 1 (Incompatible with 3DFX)"
+                              },
+                              // ... more items
+                          }
                       }
-                  }
-            });
-     </script>
+                });
+        </script>
