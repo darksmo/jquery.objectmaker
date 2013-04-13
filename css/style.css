@@ -1,0 +1,135 @@
+#config_main {
+    width: 60%;
+    padding: 2em;
+    margin: 1em;
+}
+#config_summary {
+    border: 1px solid #CCC;
+    position: fixed;
+    right: 3em; 
+    top: 6em;
+    width: 30%;
+    padding: 0;
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+}
+
+.summary_header {
+    background: #333333;
+    margin: 0;
+    padding: 1em;
+    color: #BBB;
+    font-family: Georgia, Serif;
+    font-weight: normal;
+    letter-spacing: 1px;
+    font-size: 18px;
+    border-radius: 5px 5px 0 0;
+    -webkit-border-radius: 5px 5px 0 0;
+    -moz-border-radius: 5px 5px 0 0;
+}
+
+.category {
+    color: #EEE;
+    background: #333333;
+    padding: 1em;
+    margin: 1em;
+    text-align: top;
+
+}
+.category_name {
+    font-family: Georgia, Garamond, Verdana, Serif;
+    color: #BBB;
+    font-size: 28px;
+    display: block;
+    line-height: 23px;
+    padding-left: 10px;
+    font-weight: normal;
+    letter-spacing: 2px;
+}
+.item.selected:hover {
+    background: #03899C;
+}
+.item.selected {
+    background: #015965;
+}
+.item.unselected {
+    opacity: 0.5;
+}
+.item:hover {
+    background: #FF7100;
+    cursor: hand;
+    cursor: pointer;
+}
+.item {
+    background: rgb(82,82,82);
+    display: inline-table;
+    text-align: center;
+    width: 200px;
+    height: 160px;
+    margin: 10px;
+    padding: 25px 10px 10px 10px;
+}
+.item_img {
+    padding: 3px;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+.item_val {
+    height: 17px;
+    background: rgb(255,255,255);
+    color: #FF1800;
+    font-weight: bold;
+    opacity: 0.8;
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: -28px;
+    font-family: Georgia, Garamond, Verdana, Serif;
+    text-align: right;
+    padding: 2px;
+    -webkit-border-radius: 0 0 5px 5px;
+    -moz-border-radius: 0 0 5px 5px;
+    border-radius: 0 0 5px 5px;
+}
+.item_title {
+    padding-top: 20px;
+    padding-bottom: 10px;
+    color: #333;
+    font-size: 16px;
+    font-family: Tahoma, Sans-serif;
+    color: inherit;
+    height: 80px;
+    letter-spacing: 1px;
+    line-height: 20px;
+
+}
+.summary_footer {
+    text-align: right;
+    padding: 1em;
+}
+.summary_item_remove {
+    font-size: 20px;
+    font-family: Georgia, sans-serif;
+    font-weight: bold;
+    color: #F00;
+    text-decoration: none;
+}
+.summary_item_list {
+    list-style-type: none; 
+}
+.summary_item_list li {
+    margin-top: 12px;
+    font-family: Tahoma;
+    letter-spacing: 1px;
+}
+.summary_total_expense {
+    text-align: right;
+    padding: 1em;
+    font-family: Georgia;
+    font-size: 18px;
+    font-weight: bold;
+}
+.summary_total_expense em {
+    font-style: normal;
+    color: rgb(243,40,23);
+}

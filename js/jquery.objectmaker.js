@@ -1,47 +1,139 @@
 (function($) {
     var settings = {
+        /* the default source of our data */
         source: 'http://localhost:8000/configurator',  
-        actionText: 'Confirm', 
-        actionCallback: function(){},
+        remove_item_on_selection: false,
+        
+
+        /* 
+         * For CSS targeting. The layout will be: 
+         * .----------------. <-- div you called this object on
+         * |.--------------.|
+         * ||#config_header||
+         * | -------------- | 
+         * |.---------..---.|
+         * ||#config_m||#co||
+         * ||ain      ||nfi||
+         * ||         ||g_s||
+         * ||         ||umm||
+         * ||         ||ary||
+         * | ---------  --- |
+         * |.--------------.|
+         * ||#config_footer||
+         * | -------------- | 
+         * |________________|
+         */
+        headerSectionHtmlId  : "config_header",
+        mainSectionHtmlId    : "config_main",
+        summarySectionHtmlId : "config_summary",
+        footerSectionHtmlId  : "config_footer",
+        itemSectionHtmlId    : "item",
+
+        /*
+         * These are related to the categories and individual items added
+         * under #config_main. When items are added, this section will look
+         * like:
+         *  -------------------------   <- the #config_main div
+         * | categoryhtmltemplate    |
+         * |- - - - - - - - - - - - -|
+         * | itemHtmlTemplate        |
+         * |- - - - - - - - - - - - -|
+         * | itemHtmlTemplate        |
+         * |- - - - - - - - - - - - -|
+         * | itemHtmlTemplate        |
+         * |- - - - - - - - - - - - -|
+         * | categoryhtmltemplate    |
+         * |- - - - - - - - - - - - -|
+         * | itemHtmlTemplate        |
+         * |- - - - - - - - - - - - -|
+         * | itemHtmlTemplate        |
+         * |   ... and so on         |
+         *  -------------------------
+         */
+        beginCategoryHtmlTemplate : function(category) {
+            return '<section class="category">' 
+                + '<h3 class="category_name">' + category + '</h3>';
+        },
         itemHtmlTemplate : function(item_id, item) {
-            return '<article id="' + item_id + '">'
-                + '   <header>' + item.title + '</header>'
+            return '<article class="' + settings.itemSectionHtmlId + '" id="' + item_id + '">'
+                + '   <img class="item_img" src="' + item.img + '"/>'
+                + '   <div class="item_val">' + item.val + ' ' + item.symbol + '</div>'
+                + '   <div class="item_title">' + item.title + '</div>'
                 + '</article>';
         },
+        endCategoryHtmlTemplate : function(category) {
+            return '</section>';
+        },
+        
+
+        /*
+         * These are related to the summary column, which looks like:
+         *   ---------------------------  <- the #config_summary div
+         *  | summaryHeaderHtmlTemplate |
+         *  |- - - - - - - - - - - - - -|
+         *  | selectedItemHtmlTemplate  |  <-- a sequence of these
+         *  |- - - - - - - - - - - - - -|
+         *  | summaryValueHtmlTemplate  |
+         *  |- - - - - - - - - - - - - -|
+         *  | summaryFooterHtmlTemplate |
+         *   - - - - - - - - - - - - - -
+         */
+        summaryHeaderHtmlTemplate : function() {
+            return '<h4 class="summary_header">Your Configuration</h4><ul class="summary_item_list">';
+        },
+        itemRemoveCssClass : 'summary_item_remove',
         selectedItemSummaryHtmlTemplate : function(item_id, item) {
-            return "<h3>" + item.title + "</h3>";
+            return '<li><a href="#" class="' + settings.itemRemoveCssClass +'">&times;</a><b>' + item.type + '</b><br/> <img style="height:16px; width:16px;" src="' + item.img + '"> ' + item.title+ '</li>';
         },
         summaryValueHtmlTemplate : function(summary_val) {
-            return '<h2>' + summary_val + '</h2>';
+            return '</ul><h2 class="summary_total_expense">Total expense: <em>' + summary_val + ' &euro;</em></h2>';
         },
-        summaryActionsHtmlTemplate : function () {
-            return '';
+        resetSelectionCssClass : 'summary_reset',
+        summaryFooterHtmlTemplate : function () {
+            return '<footer class="summary_footer"><button class="'+settings.resetSelectionCssClass+'">Start Over</button></footer>';
         },
-        categoryHtmlTemplate : function(category) {
-            return '<h4>' + category + '</h4>';
+
+        /*
+         * Callbacks. Called whenever an item needs to appear
+         * selected/selectable/unselected.
+         */
+        onItemSelected: function(item_id) {
+            // the item is selected
+            $('#' + item_id )
+                .removeClass('selectable')
+                .removeClass('unselected')
+                .addClass('selected');
         },
-        selectItem : function(item_id) {
-            $('#' + item_id ).css('color', 'red');
+        onItemSelectable: function(item_id) {
+            $('#' + item_id )
+                .addClass('selectable')
+                .removeClass('unselected')
+                .removeClass('selected');
         },
+        onItemUnselected: function(item_id) {
+            $('#' + item_id )
+                .removeClass('selectable')
+                .addClass('unselected')
+                .removeClass('selected');
+        },
+        onResetSelection: function() {
+        },
+
+        /*
+         * Callback. Called when the last selected item has caused some
+         * elements to be deleted.
+         */
+         onConflictsDetected: function(item_id, item, conflicting_items) {
+            return true;  // resolve the conflict directly (i.e., delete the items)
+            return false; // let me handle it, will ask for a confirmation first...
+         }
     };
 
     var methods = {
-        item_selected : function (item_id) {
-            // basically the user tells us a selection was made. We need to
-            // store the selection in the jquery object and make the request
-            // again.
-            var $this = $(this);
-
-            // update selection
-            var data = $this.data('objectmaker');
-            data.selection.push(item_id);
-            $this.data('objectmaker', data);
-
-            // request to server
-            methods._request_items.call($this);
-
-            return $this;
-        },
+        /*
+         * Initialize the object maker. Creates initial markup for the
+         * configurator using the parameters provided.
+         */
         init : function(options) {
 
             // extend settings
@@ -54,32 +146,151 @@
                     // initially the selection is empty
                     data = {
                         selection : [],
+                        items : {},
+                        // stores the last selection sent from the server that will involve
+                        // deleting some items.
+                        last_no_conflicts_selection : []
                     };
                     $this.data('objectmaker', data);
 
                     // inital skeleton of the configurator
                     $this.html(
-                        '<header><h1>The Configurator</h1></header>'
-                        + '<section></section>'
-                        + '<aside></aside>'
+                        '<header id="' + settings.headerSectionHtmlId + '"></header>'
+                        + '<section id="' + settings.mainSectionHtmlId + '"></section>'
+                        + '<aside id="' + settings.summarySectionHtmlId+ '"></aside>'
+                        + '<section id="' + settings.footerSectionHtmlId + '"></section>'
                     );
 
                     // request data the first time (will get all of the items)
                     methods._request_items.call($this);
+
+                    // automatically select element
+                    $this.on('click', "." + settings.itemSectionHtmlId, function(event) {
+                        var clicked_item_id = $(this).attr('id');
+
+                        // if this item is already selected, unselect it
+                        // otherwise select it.
+                        data = $this.data('objectmaker');
+                        var item_selected_position 
+                            = data.selection.indexOf(clicked_item_id);
+
+                        if (item_selected_position == -1) {
+                            methods.item_selected.call($this, clicked_item_id);
+                        }
+                        else {
+                            methods.item_deselected.call($this, clicked_item_id);
+                        }
+                    });
+                    // remove item
+                    $this.on('click', "." + settings.itemRemoveCssClass, function(event) {
+                        var clicked_offset_top = $(this).offset().top;
+
+                        // exhamine each item, until the current one is found
+                        var idx_to_delete = -1;
+                        var data = $this.data('objectmaker');
+                        $("." + settings.itemRemoveCssClass).each(function(i,v) {
+                            if ($(v).offset().top == clicked_offset_top) {
+                                // delete this from the selection 
+                                idx_to_delete = i;
+                            }
+                        });
+                        if (idx_to_delete != -1) {
+                            var item_id = data.selection[idx_to_delete];
+                            methods.item_deselected.call($this, item_id);
+                        }
+                        return false;
+                    });
+                    // reset selection
+                    $this.on('click', "." + settings.resetSelectionCssClass, function(event) {
+                        data = $this.data('objectmaker');
+                        data.selection = [];
+                        $this.data('objectmaker', data);
+                        methods._request_items.call($this);
+});
                 }
                 else {
                     $.error("Cannot initialize an objectMaker twice");
                 }
             });
         },
-        _request_items : function() {
-            // make a first request by sending an empty selection
-            // (retrieves all the available items
+        resolve_conflicts : function() {
+        /*
+         * Resolves the last conflicts detected. An array containing the
+         * expected selection is already stored internally.
+         */
+         var data = this.data("objectmaker");
+         if (data.last_no_conflicts_selection.length > 0) {
+            $this = $(this);
+
+            // store the new selection
+            data.selection = data.last_no_conflicts_selection;  
+            
+            // clear the conflicting selection (it will be resolved soon)
+            data.last_no_conflicts_selection = [];
+    
+            // perform the request as if the user had chosen the conflicting item.
+            methods._request_items.call($this, true);
+         }
+        },
+
+        /*
+         * Public method called by the client to signal that an item was
+         * selected. Will trigger a request to the server with related
+         * handling of the response.
+         */
+        item_selected : function (item_id) {
+            var $this = $(this);
+
+            // update selection
+            var data = $this.data('objectmaker');
+
+            // must unselect all elements from the same type as the object
+            data.selection = data.selection.filter(function(x){
+                return data.items[x].type !== data.items[item_id].type
+            });
+
+            // just select this item
+            data.selection.push(item_id);
+
+            $this.data('objectmaker', data);  // store back
+
+            // request to server (and handle response)
+            methods._request_items.call($this);
+
+            return $this;
+        },
+        item_deselected : function (item_id) {
+            var $this = $(this);
+
+            // update selection
+            var data = $this.data('objectmaker');
+            var found_at = data.selection.indexOf(item_id);
+            if ( found_at > -1) {
+                data.selection.splice(found_at, 1);
+                $this.data('objectmaker', data);  // store back
+
+                // request to server (and handle response)
+                methods._request_items.call($this);
+            }
+
+            return $this;
+        },
+
+
+        /* 
+         * Send the current selection to the server and, based on that,
+         * receive:
+         * 1) current selection (server has validated it)
+         * 2) items that need to be available for the next selection
+         * 3) in what order they should appear in the visualization
+         */
+        _request_items : function(ignore_conflicts) {
             var selected_items = this.data('objectmaker').selection;
 
             if (typeof(settings.source) === 'function') {
                 // just call the function
                 var response_srvo = (settings.source)(selected_items);
+                if (ignore_conflicts) { response_srvo.conflicts = []; }
                 methods._response_received.call(this, response_srvo);
             }
             else {
@@ -87,53 +298,128 @@
                 // 2. methods._response_received.call(this, response_srvo);
             }
         },
-        _response_received : function(response_srvo) {
-            //
-            // Response looks like: 
-            // {
-            //    item_ids : ["id22", ... ],
-            //    items : {
-            //      "id22" : {
-            //         type: "Video Cards",
-            //          img: "http://www.placehold.it/60x60",
-            //          val: 45.3,
-            //        title: "The product 22",
-            //         link: "http://www.wikipedia.com/product22"  (optional)
-            //      },
-            //      ...
-            //    },
-            //    selection : ['id51', 'id33']
-            // }
-
-            // set html of the items
-            this.find("section").html(
-                methods._items_to_html.call($(this), 
-                    response_srvo.item_ids, 
-                    response_srvo.items
-                )
-            );
-
-            // apply the selection
-            var summary_html = '';
-            var summary_val = 0;
-            $(response_srvo.selection).each(function(i, item_id) {
-                // select item in the current list
-                settings.selectItem(item_id)
-
-                // add selection to the summary
-                var item = response_srvo.items[item_id];
-                summary_html += settings.selectedItemSummaryHtmlTemplate(item_id, item);
-                summary_val += item.val;
-            });
-
-            // final items in the summary html...
-            summary_html += settings.summaryValueHtmlTemplate(summary_val);
-            summary_html += settings.summaryActionsHtmlTemplate();
-            summary_html += '<a href="#">' + settings.actionText + '</a>';
-
-            // write summary html
-            this.find("aside").html(summary_html);
+        
+        /*
+         * Augments the array of conflicting products with the complete
+         * structure returned from the server.
+         */
+        _expand_conflicts_array : function(srvo_conflicts) {
+            var items_data = this.data("objectmaker");
+            return srvo_conflicts.map(function(x){ return items_data.items[x]; });
         },
+        /*
+         * Update the markup based on the data received from the server in
+         * response to a selection.
+         *
+         * Response looks like: 
+         * {
+         *    item_ids : ["id22", ... ],
+         *    items : {
+         *      "id22" : {
+         *         type: "Video Cards",
+         *          img: "http://www.placehold.it/60x60",
+         *          val: 45.3,
+         *        title: "The product 22",
+         *         link: "http://www.wikipedia.com/product22"  (optional)
+         *      },
+         *      ...
+         *    },
+         *    selection : ['id51', 'id33'],
+         *    conflicts : ['id33', 'id11', 'id34'],  (items that will be deleted)
+         * }
+         */
+        _response_received : function(response_srvo) {
+            // update cache if server sends new data
+            var data = this.data("objectmaker");
+            var is_new_data_received = false;
+            for (item in response_srvo.items) {
+                data.items[item] = response_srvo.items[item];
+                is_new_data_received = true;
+                this.data("objectmaker", data);  // need to save here, important!
+            }
+
+            // prepare in case of conflicts...
+            var srvo_conflicts = response_srvo.conflicts;
+            var conflicts_data = methods._expand_conflicts_array.call(this, srvo_conflicts);
+            var last_sel_item = response_srvo.selection[response_srvo.selection.length-1];
+            
+            // check for conflicts. If the selected item caused some other
+            // items to be selected we should warn the user, and only proceed
+            // under explicit consent. Last item of the selection is the last
+            // selected item.
+            if (response_srvo.conflicts.length > 0 && response_srvo.selection.length > 0
+                 && ! settings.onConflictsDetected(
+                        last_sel_item,
+                        data.items[last_sel_item],
+                        conflicts_data))  {
+                
+               // user did not give consent immediately. Let's store the action
+               // and retry later.
+               data.last_no_conflicts_selection = response_srvo.selection;
+            }
+            else {
+                // display the new data in case they have changed or we force to do
+                // so...
+                if (is_new_data_received
+                        || settings.remove_item_on_selection) {
+
+                    // set html of the items
+                    this.find("#" + settings.mainSectionHtmlId).html(
+                        methods._items_to_html.call($(this), 
+                            response_srvo.item_ids, 
+                            data.items
+                        )
+                    );
+                }
+
+                // we must select what is selected and unselect what is not.
+                for (var item_id in data.items) {   /* unselect all */
+                    if (data.items.hasOwnProperty(item_id)) {
+                        settings.onItemUnselected(item_id);
+                    }
+                }
+                for (var i=0, I=response_srvo.item_ids.length; i<I; i++) {
+                    var item_id = response_srvo.item_ids[i];
+                    settings.onItemSelectable(item_id); 
+                }
+
+                // initial content of the summary is the header...
+                var summary_html = settings.summaryHeaderHtmlTemplate();
+
+                // ... then each selected item
+                var summary_val = 0;
+                $(response_srvo.selection).each(function(i, item_id) {
+                    var item = data.items[item_id];
+
+                    settings.onItemSelected(item_id);
+
+                    summary_html += 
+                        settings.selectedItemSummaryHtmlTemplate(item_id, item);
+
+                    summary_val += item.val;
+
+                });
+
+                // ... finally the summary value (e.g., total) and the footer.
+                summary_html += settings.summaryValueHtmlTemplate(
+                        summary_val
+                );
+                summary_html += settings.summaryFooterHtmlTemplate();
+
+                // write summary html
+                this.find("aside").html(summary_html);
+
+                // save the new selection
+                data.selection = response_srvo.selection.slice();
+            }
+            this.data("objectmaker", data);
+        },
+
+        /*
+         * Helper function to turn the list of items received from the server
+         * and their order into html markup. Renders items in order within
+         * each category.
+         */
         _items_to_html : function(item_ids, items) {
             var htmls = {};
             var categories = [];
@@ -154,27 +440,34 @@
             // now render each category
             var html = '';
             $(categories).each(function(i,c) {
-                html += settings.categoryHtmlTemplate(c);
+                html += settings.beginCategoryHtmlTemplate(c);
 
                 // add all the items belonging to this category
                 $(htmls[c]).each(function(i, item_html) {
                     html += item_html;
                 });
+
+                html += settings.endCategoryHtmlTemplate(c);
             });
 
             return html;
         }
     };
 
+    /*
+     * The logic that handles method calling.
+     */
     $.fn.objectMaker = function(method) {
-
-        // Method calling logic
-        if ( methods[method] ) {
-            return methods[ method ].apply( this, Array.prototype.slice.call( arguments, 1 ));
-        } else if ( typeof method === 'object' || ! method ) {
-            return methods.init.apply( this, arguments );
+        if (methods[method]) {
+            return methods[method].apply(
+                this, Array.prototype.slice.call(arguments, 1)
+            );
+        } else if (typeof method === 'object' || !method ) {
+            return methods.init.apply(this, arguments);
         } else {
-            $.error( 'Method ' +  method + ' does not exist on jQuery.objectMaker' );
+            $.error(
+                'Method ' +  method + ' does not exist on jQuery.objectMaker' 
+            );
         }    
     };
 

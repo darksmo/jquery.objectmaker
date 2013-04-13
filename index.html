@@ -10,56 +10,177 @@
     <body id="index" class="main">
         <header>
             <h1>Pc Configurator</h1>
+            <hr/>
         </header>
         <aside>
         </aside>
-        <section id="configurator">
-        </section>
+
+        <!-- this will be our target div -->
+        <section id="configurator"></section>
+
         <footer>
+           <hr/>
+           Simply a footer for this page 
         </footer>
+
         <script type="text/javascript">
-            var om = $("#configurator").objectMaker({
+            var config = $("#configurator").objectMaker({
                 source: function(selection_array) {
-                    var initial = {
-                        selection : selection_array,
-                        item_ids : ["P16", "P32", "P64", "P128", "P256"],
-                        items : {
-                            "P16" : {
-                              type: "Case",
-                              img: "http://www.placehold.it/60x60",
-                              val: 100,
-                              title: "Small Case type 1"
-                            },
-                            "P32" : {
-                              type: "Case",
-                              img: "http://www.placehold.it/60x60",
-                              val: 100,
-                              title: "Larger Case"
-                            },
-                            "P64" : {
-                              type: "Video Card",
-                              img: "http://www.placehold.it/60x60",
-                              val: 64,
-                              title: "Monster Graphics 3D"
-                            },
-                            "P128" : {
-                              type: "Video Card",
-                              img: "http://www.placehold.it/60x60",
-                              val: 38,
-                              title: "Old Style 3dfx"
-                            },
-                            "P256" : {
-                              type: "Sound Card",
-                              img: "http://www.placehold.it/60x60",
-                              val: 18,
-                              title: "SoundBlaster"
-                            },
-                        }
+                    var response = {
+                        selection : [], // contains the validated selection
+                        item_ids : [], // we are going to fill this up using the
+                                       // keys later on.
+                        items : {}
                     };
-                    if ("P32" in selection_array) {
-                        delete(initial.items["P128"]);
+
+                    var mutexes = {
+                        "P128" : ["P16", "P256"],
+                        "P16"  : ["P128"],
+                        "P256" : ["P128"]
+                    };
+
+                    var items = {
+                        "P16" : {
+                          type: "Case",
+                          img: "http://www.placehold.it/120x120",
+                          val: 100,
+                          symbol: "&euro;",
+                          title: "Small Case type 1 (Incompatible with 3DFX)"
+                        },
+                        "P32" : {
+                          type: "Case",
+                          img: "http://www.placehold.it/120x120",
+                          val: 100,
+                          symbol: "&euro;",
+                          title: "Larger Case"
+                        },
+                        "P48" : {
+                          type: "Video Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 1024.23,
+                          symbol: "&euro;",
+                          title: "Matrox Millennium"
+                        },
+                        "P49" : {
+                          type: "Video Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 2048.23,
+                          symbol: "&euro;",
+                          title: "Matrox Mistique"
+                        },
+                        "P64" : {
+                          type: "Video Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 64,
+                          symbol: "&euro;",
+                          title: "Monster Graphics 3D"
+                        },
+                        "P128" : {
+                          type: "Video Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 38,
+                          symbol: "&euro;",
+                          title: "3DFX"
+                        },
+                        "P256" : {
+                          type: "Sound Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 18,
+                          symbol: "&euro;",
+                          title: "SoundBlaster",
+                        },
+                        "P1024" : {
+                          type: "Sound Card",
+                          img: "http://www.placehold.it/120x120",
+                          val: 39,
+                          symbol: "&euro;",
+                          title: "SoundBlaster2",
+                        },
+                    };
+
+                    var are_items_compatible = function (a, b) {
+                        if (a in mutexes && mutexes[a].indexOf(b) > -1) return 0;
+                        if (b in mutexes && mutexes[b].indexOf(a) > -1) return 0;
+                        if (items[a].type == items[b].type) return 0;
+                        return 1;
                     }
-                    return initial;
+
+                    var incompatible_items = {};
+
+                    // put first item
+                    if (selection_array.length) {
+                        var last_selected = selection_array.pop();
+                        response.selection.unshift(last_selected);
+                    }
+
+                    // keep the conflicts
+                    var conflicts_array =[];
+                    
+                    // remove from selection whatever is not compatible with
+                    // the items currently selected
+                    while (selection_array.length > 0) {
+                        // candidate items in the selection array
+                        // come sorted from oldest to newly selected.
+                        // The last element corresponds to the item
+                        // the user has just selected.
+                        var next_candidate = selection_array.pop();
+
+                        // check if the next selected item is actually
+                        // compatible with the items selected so far
+                        var is_next_candidate_compatible = 1;
+                        var current_selection_length = response.selection.length;
+                        for (var i=0, I=current_selection_length; i<I; i++) {
+                            var item = response.selection[current_selection_length-i-1];
+                            if (!are_items_compatible(item, next_candidate)) {
+                                is_next_candidate_compatible = 0;
+                                break;
+                            }
+                        }
+
+                        // add it to the selection if is compatible
+                        if (is_next_candidate_compatible) {
+                            // select this item
+                            response.selection.unshift(next_candidate);
+                        }
+                        else {
+                            // keep track of the conflict
+                            conflicts_array.push(next_candidate);
+                        }
+                    }
+
+                    // now from the validated selection, build an object that
+                    // indexes non-compatible items
+                    for (var idx=0, IDX=response.selection.length; idx<IDX; idx++) {
+                        var sel_item = response.selection[idx];
+                        if (sel_item in mutexes) {
+                            for (var i=0, I=mutexes[sel_item].length; i<I; i++) {
+                                incompatible_items[mutexes[sel_item][i]] = 1;
+                            }
+                        }
+                    }
+
+                    // send all items if the selection was empty
+                    if (response.selection.length == 0) {
+                        response.items = items;
+                    }
+
+                    // now decide which items should be shown
+                    for (x in items) {
+                        if (!(x in incompatible_items)
+                            && (-1 == response.selection.indexOf(x))) {
+
+                            response.item_ids.push(x);
+                        }
+                    }
+
+                    // if the last item selected generated
+                    // conflicts, return the conflicting items as well.
+                    response.conflicts = [];
+                    if (conflicts_array.length > 0) {
+                        response.conflicts = conflicts_array;
+                    }
+
+                    return response;
                 },
             });
         </script>
