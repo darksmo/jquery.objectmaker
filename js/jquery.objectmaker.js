@@ -118,6 +118,14 @@
         },
         onResetSelection: function() {
         },
+        onServerRequestingData: function() {  // data is being requested...
+        },
+        onServerSuccess: function() {   // data has been successfully retrieved...
+        },
+        onServerError: function(txt_error) {  // data hasn't been successfully retrieved...
+        },
+        onServerComplete: function() {  // server request completed (error or success)
+        },
 
         /*
          * Callback. Called when the last selected item has caused some
@@ -287,13 +295,13 @@
         _request_items : function(ignore_conflicts) {
             var selected_items = this.data('objectmaker').selection;
 
-            if (typeof(settings.source) === 'function') {
+            if (typeof settings.source === 'function') {
                 // user is providing a logic him/herself - just call it
                 var response_srvo = (settings.source)(selected_items);
                 if (ignore_conflicts) { response_srvo.conflicts = []; }
                 methods._response_received.call(this, response_srvo);
             }
-            else if (typeof(settings.source) === 'object') {
+            else if (typeof settings.source === 'object') {
                 // user is providing the data, so, we use our own logic
                 var user_items = settings.source.items;
                 var user_mutexes = settings.source.mutexes;
@@ -303,9 +311,25 @@
                 if (ignore_conflicts) { response_srvo.conflicts = []; }
                 methods._response_received.call(this, response_srvo);
             }
-            else {
+            else if (typeof settings.source === 'string') {
                 // 1. In an ajax call, request the data given the current selected_items
                 // 2. methods._response_received.call(this, response_srvo);
+                settings.onServerRequestingData();
+                var that = this;
+                $.ajax(settings.source, {
+                    data : selected_items,
+                    method: 'POST',
+                    success: function(response_srvo, txt_status, xhr) {
+                        settings.onServerSuccess();
+                        methods._response_received.call(that, response_srvo);
+                    },
+                    error: function(xhr, txt_status, txt_error) {
+                        settings.onServerError(txt_error);
+                    },
+                    complete: function(xhr, txt_status) {
+                        settings.onServerComplete();
+                    }
+                });
             }
         },
         

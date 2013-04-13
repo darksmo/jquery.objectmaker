@@ -13,13 +13,13 @@ Features:
   - you can provide the data of the items and use built-in logic to handle
     user's selections;
   - you can provide your own logic to handle a user's selection;
+  - you can use server side logic to handle a user's selection (not cross-domain);
   - you can fully customize the output markup or parts of it;
   - you can easily build a confirmation dialog on top of this plugin to show
     the users what elements are going to be deleted;
   - event callbacks (in case you have to perform other actions).
 
 Future Plans:
-  - call server side logic
   - show price deltas based on current selection
 
 Quick Start:
