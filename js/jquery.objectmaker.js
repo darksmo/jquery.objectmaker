@@ -288,8 +288,18 @@
             var selected_items = this.data('objectmaker').selection;
 
             if (typeof(settings.source) === 'function') {
-                // just call the function
+                // user is providing a logic him/herself - just call it
                 var response_srvo = (settings.source)(selected_items);
+                if (ignore_conflicts) { response_srvo.conflicts = []; }
+                methods._response_received.call(this, response_srvo);
+            }
+            else if (typeof(settings.source) === 'object') {
+                // user is providing the data, so, we use our own logic
+                var user_items = settings.source.items;
+                var user_mutexes = settings.source.mutexes;
+                var response_srvo = (methods._handle_items_selected)(
+                    selected_items, user_items, user_mutexes
+                );
                 if (ignore_conflicts) { response_srvo.conflicts = []; }
                 methods._response_received.call(this, response_srvo);
             }
@@ -306,6 +316,127 @@
         _expand_conflicts_array : function(srvo_conflicts) {
             var items_data = this.data("objectmaker");
             return srvo_conflicts.map(function(x){ return items_data.items[x]; });
+        },
+        /*
+         * Some logic that based on item data and mutexes provided by the user
+         * will deal with the user selection and return the expected data
+         * structures.
+         *
+         * - item data: data about items that potentially make up the object.
+         *
+         *     For example:
+         *     {
+         *        "P16" : {
+         *          type: "Case",
+         *          img: "http://www.placehold.it/120x120",
+         *          val: 100,
+         *          symbol: "&euro;",
+         *          title: "Small Case type 1 (Incompatible with 3DFX)"
+         *        },
+         *        ...
+         *     }
+         *
+         * - mutexes: object of the form
+         *
+         *     {
+         *       "<id>" : [<id1>,<id2>],
+         *       ...
+         *     }
+         *     
+         *     which tells objectmaker that <id> is not compatible with <id1>
+         *     and <id2>.
+         */
+        _handle_items_selected : function(selection_array, items, mutexes) {
+            var response = {
+                selection : [], // contains the validated selection
+                item_ids : [], // we are going to fill this up using the
+                               // keys later on.
+                items : {}
+            };
+
+            var are_items_compatible = function (a, b) {
+                if (a in mutexes && mutexes[a].indexOf(b) > -1) return 0;
+                if (b in mutexes && mutexes[b].indexOf(a) > -1) return 0;
+                if (items[a].type == items[b].type) return 0;
+                return 1;
+            }
+
+            var incompatible_items = {};
+
+            // put first item
+            if (selection_array.length) {
+                var last_selected = selection_array.pop();
+                response.selection.unshift(last_selected);
+            }
+
+            // keep the conflicts
+            var conflicts_array =[];
+            
+            // remove from selection whatever is not compatible with
+            // the items currently selected
+            while (selection_array.length > 0) {
+                // candidate items in the selection array
+                // come sorted from oldest to newly selected.
+                // The last element corresponds to the item
+                // the user has just selected.
+                var next_candidate = selection_array.pop();
+
+                // check if the next selected item is actually
+                // compatible with the items selected so far
+                var is_next_candidate_compatible = 1;
+                var current_selection_length = response.selection.length;
+                for (var i=0, I=current_selection_length; i<I; i++) {
+                    var item = response.selection[current_selection_length-i-1];
+                    if (!are_items_compatible(item, next_candidate)) {
+                        is_next_candidate_compatible = 0;
+                        break;
+                    }
+                }
+
+                // add it to the selection if is compatible
+                if (is_next_candidate_compatible) {
+                    // select this item
+                    response.selection.unshift(next_candidate);
+                }
+                else {
+                    // keep track of the conflict
+                    conflicts_array.push(next_candidate);
+                }
+            }
+
+            // now from the validated selection, build an object that
+            // indexes non-compatible items
+            for (var idx=0, IDX=response.selection.length; idx<IDX; idx++) {
+                var sel_item = response.selection[idx];
+                if (sel_item in mutexes) {
+                    for (var i=0, I=mutexes[sel_item].length; i<I; i++) {
+                        incompatible_items[mutexes[sel_item][i]] = 1;
+                    }
+                }
+            }
+
+            // send all items if the selection was empty
+            if (response.selection.length == 0) {
+                response.items = items;
+            }
+
+            // now decide which items should be shown
+            for (x in items) {
+                if (!(x in incompatible_items)
+                    && (-1 == response.selection.indexOf(x))) {
+
+                    response.item_ids.push(x);
+                }
+            }
+
+            // if the last item selected generated
+            // conflicts, return the conflicting items as well.
+            response.conflicts = [];
+            if (conflicts_array.length > 0) {
+                response.conflicts = conflicts_array;
+            }
+
+            return response;
         },
         /*
          * Update the markup based on the data received from the server in
