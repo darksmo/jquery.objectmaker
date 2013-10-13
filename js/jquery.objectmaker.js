@@ -2,8 +2,11 @@
     var settings = {
         /* the default source of our data */
         source: 'http://localhost:8000/configurator',  
+
+        // use a comma to separate each id of the selection in the POST request
+        json_selection_separator : ',',  
+
         remove_item_on_selection: false,
-        
 
         /* 
          * For CSS targeting. The layout will be: 
@@ -317,8 +320,9 @@
                 settings.onServerRequestingData();
                 var that = this;
                 $.ajax(settings.source, {
-                    data : selected_items,
-                    method: 'POST',
+                    data : selected_items.join(settings.json_selection_separator),
+                    dataType : "json",
+                    type: 'POST',
                     success: function(response_srvo, txt_status, xhr) {
                         settings.onServerSuccess();
                         methods._response_received.call(that, response_srvo);
