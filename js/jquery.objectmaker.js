@@ -60,7 +60,7 @@
         itemHtmlTemplate : function(item_id, item) {
             return '<article class="' + settings.itemSectionHtmlId + '" id="' + item_id + '">'
                 + '   <img class="item_img" src="' + item.img + '"/>'
-                + '   <div class="item_val">' + item.val + ' ' + item.symbol + '</div>'
+                + '   <div class="item_val">' + item.val + ' &euro;</div>'
                 + '   <div class="item_title">' + item.title + '</div>'
                 + '</article>';
         },
@@ -358,7 +358,6 @@
          *          type: "Case",
          *          img: "http://www.placehold.it/120x120",
          *          val: 100,
-         *          symbol: "&euro;",
          *          title: "Small Case type 1 (Incompatible with 3DFX)"
          *        },
          *        ...

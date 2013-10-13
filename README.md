@@ -56,7 +56,6 @@ Quick Start:
                                 type: "Case",
                                 img: "http://www.placehold.it/120x120",
                                 val: 100,
-                                symbol: "&euro;",
                                 title: "Small Case type 1 (Incompatible with 3DFX)"
                               },
                               // ... more items
