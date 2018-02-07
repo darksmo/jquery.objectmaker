@@ -24,42 +24,48 @@ Future Plans:
 
 Quick Start:
 
-  1. include css jQuery and javascripts in your html
-  
-        <head>
-          <link rel="stylesheet" href="css/style.css" type="text/css">
-          <script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
-          <script type="text/javascript" src="js/jquery.objectmaker.js"></script>
-        </head>
-  
-  2. create a <section> containing your configurator
-  
-        ...
-        <body>
-          <section id="configurator"></section>
-        </body>
-        ...
-  
-  3. initialize objectmaker on #configurator
-  
-        <script type="text/javascript">
-                  var config = $("#configurator").objectMaker({
-                      source: {
-                          // define mutually exclusive products.
-                          // the line below means: item "P128" is not compatible with items "P16" and "P256".
-                          "mutexes" : {
-                              "P128" : ["P16", "P256"],
-                              // ... more mutexes
+1. include css jQuery and javascripts in your html
+
+    ```javascript
+    <head>
+      <link rel="stylesheet" href="css/style.css" type="text/css">
+      <script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+      <script type="text/javascript" src="js/jquery.objectmaker.js"></script>
+    </head>
+    ```
+
+2. create a `<section>` containing your configurator
+
+    ```javascript
+    ...
+    <body>
+      <section id="configurator"></section>
+    </body>
+    ...
+    ```
+
+3. initialize objectmaker on #configurator
+
+    ```javascript
+    <script type="text/javascript">
+              var config = $("#configurator").objectMaker({
+                  source: {
+                      // define mutually exclusive products.
+                      // the line below means: item "P128" is not compatible with items "P16" and "P256".
+                      "mutexes" : {
+                          "P128" : ["P16", "P256"],
+                          // ... more mutexes
+                      },
+                      "items" : {
+                          "P16" : {
+                            type: "Case",
+                            img: "http://www.placehold.it/120x120",
+                            val: 100,
+                            title: "Small Case type 1 (Incompatible with 3DFX)"
                           },
-                          "items" : {
-                              "P16" : {
-                                type: "Case",
-                                img: "http://www.placehold.it/120x120",
-                                val: 100,
-                                title: "Small Case type 1 (Incompatible with 3DFX)"
-                              },
-                              // ... more items
-                          }
+                          // ... more items
                       }
-                });
-        </script>
+                  }
+            });
+    </script>
+    ```
